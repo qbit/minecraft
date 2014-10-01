@@ -141,6 +141,11 @@ else
     fi
         i=$(( i + 1 ))
   done
-
+  
+  # Running from here is super ghetto - this script basically gets
+  # called twice.. once by the user, and once by Minecraft.jar
+  # First run has no args.. second picks up the info to start the game
+  # posible solution is to detect the caller and conditionally execute
+  # based on that.
   ${JAVA_HOME}/jre/bin/java ${args[@]} -jar ${FULL_PATH}
 fi
