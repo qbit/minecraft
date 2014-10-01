@@ -1,0 +1,146 @@
+#!/bin/ksh
+
+grey="\033[01;30m"
+red="\033[01;31m"
+green="\033[01;32m"
+yellow="\033[01;33m"
+blue="\033[01;34m"
+magenta="\033[01;35m"
+cyan="\033[01;35m"
+bold="\033[01;39m"
+
+white="\033[0m"
+
+PREFIX="/usr/local"
+JAVA_HOME="/usr/local/jdk-1.7.0/"
+
+function usage {
+	 cat <<EOF
+  minecraft options:
+    -f force download of Minecraft.js
+    -r re-run the initial configuration
+EOF
+}
+
+INITIAL=true
+CONF_FILE=~/.minecraftrc
+
+function get_conf_var {
+  RET=''
+  if [ -e $CONF_FILE ]; then
+    RET=$( grep $1 $CONF_FILE | awk -F\: '{print $2}' )
+  fi
+
+  if [ "${RET}X" == "X" ]; then
+    return 1
+  else
+    echo $RET
+  fi
+}
+
+function set_conf_var {
+  MAKE=false
+  if [ -e $CONF_FILE ]; then
+    MAKE=true
+  fi
+}
+
+function prompt {
+  read INPUT
+  return $INPUT
+}
+
+function msg {
+  echo "${green}${1}${white}"
+}
+
+function error {
+  echo "${red}${1}${white}"
+  exit 1
+}
+
+if [ -e $CONF_FILE ]; then
+   INITIAL=false;
+fi
+
+if [ $INITIAL == true ]; then
+   FULL_PATH=""
+   msg "Directory to download Minecraft.jar to? : "
+   read FETCH_TO
+   if [ -d $FETCH_TO ]; then
+      cd $FETCH_TO && \
+      ftp "https://s3.amazonaws.com/Minecraft.Download/launcher/Minecraft.jar"
+      FULL_PATH="${PWD}/Minecraft.jar"
+      msg "Downloaded to ${FULL_PATH}"
+   fi
+
+   mkdir -p ~/minecraft
+
+   msg "Please enter your minecraft user id: "
+   read USERID
+      
+   cat <<EOF > ~/minecraft/launcher_profiles.json
+{
+  "profiles": {
+    "${USERID}": {
+      "name": "${USERID}",
+      "javaDir": "${PREFIX}/bin/minecraft"
+    }
+  }
+}
+EOF
+    touch $CONF_FILE
+    echo "USERID:${USERID}" > $CONF_FILE
+    echo "FULL_PATH:${FULL_PATH}" >> $CONF_FILE
+
+    msg "${CONF_FILE} written, now you can now just run 'minecraft' to start the game!"
+else
+  WORKDIR="${PREFIX}/share/lwjgl"
+  LWJGL_JLP_OVRD="$WORKDIR/"
+  LWJGL_OVRD="$WORKDIR/lwjgl.jar"
+  LWJGL_UTIL_OVRD="$WORKDIR/lwjgl_util.jar"
+
+  export JAVA_HOME=${JAVA_HOME}
+
+  FULL_PATH=$(get_conf_var "FULL_PATH")
+
+  build_classpath() {
+    j=0
+    ocp=`echo ${1} | sed 's/:/ /g'`
+    for p in ${ocp}
+    do
+        if [[ $p == *lwjgl-* ]]
+        then
+            ncp[$j]=${LWJGL_OVRD}
+        elif [[ $p == *lwjgl_util* ]]
+        then
+            ncp[$j]=${LWJGL_UTIL_OVRD}
+        else
+            ncp[$j]=${p}
+        fi
+        j=$(( j + 1 ))
+    done
+
+    cp=`echo ${ncp[@]} | sed 's/ /:/g'`
+  }
+
+  i=0
+  for var in "${@}"
+  do
+    if [[ "$var" == -Djava.library* ]]
+    then
+    # Yes, the next line is supposed to have 'FreeBSD' because OpenBSD
+    # is not (yet) recognized as a supported platform in lwjgl.
+        args[$i]="-Djava.library.path=${LWJGL_JLP_OVRD} -Dos.name=FreeBSD"
+    elif [[ "$var" == *lwjgl_util* ]]
+    then
+        build_classpath "${var}"
+        args[$i]="$cp"
+    else
+        args[$i]=$var
+    fi
+        i=$(( i + 1 ))
+  done
+
+  ${JAVA_HOME}/jre/bin/java ${args[@]} -jar ${FULL_PATH}
+fi
