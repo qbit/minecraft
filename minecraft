@@ -24,62 +24,85 @@ EOF
 
 INITIAL=true
 CONF_FILE=~/.minecraftrc
+CONF_DIR=~/minecraft
+MC_URL="https://s3.amazonaws.com/Minecraft.Download/launcher/Minecraft.jar"
 
 function get_conf_var {
-  RET=''
-  if [ -e $CONF_FILE ]; then
-    RET=$( grep $1 $CONF_FILE | awk -F\: '{print $2}' )
-  fi
+    RET=''
+    if [ -f $CONF_FILE ]; then
+	RET=$( grep $1 $CONF_FILE | awk -F\: '{print $2}' )
+    else
+	return 1
+    fi
 
-  if [ "${RET}X" == "X" ]; then
-    return 1
-  else
-    echo $RET
-  fi
+    if [ "${RET}X" == "X" ]; then
+	return 1
+    else
+	echo $RET
+    fi
 }
 
-function set_conf_var {
-  MAKE=false
-  if [ -e $CONF_FILE ]; then
-    MAKE=true
-  fi
-}
-
-function prompt {
-  read INPUT
-  return $INPUT
+function fetch {
+    ftp $1
 }
 
 function msg {
-  echo "${green}${1}${white}"
+    echo "${bold}${1}${white}"
 }
 
 function error {
-  echo "${red}${1}${white}"
-  exit 1
+    echo "${red}${1}${white}"
+    exit 1
 }
 
-if [ -e $CONF_FILE ]; then
-   INITIAL=false;
+if [ -d $CONF_DIR ]; then
+    if [ -f $CONF_FILE ]; then
+	INITIAL=false
+    fi
+else
+    mkdir $CONF_DIR
+fi
+
+if [ ! -d $CONF_DIR ]; then
+    INITIAL=true
 fi
 
 if [ $INITIAL == true ]; then
-   FULL_PATH=""
-   msg "Directory to download Minecraft.jar to? : "
-   read FETCH_TO
-   if [ -d $FETCH_TO ]; then
-      cd $FETCH_TO && \
-      ftp "https://s3.amazonaws.com/Minecraft.Download/launcher/Minecraft.jar"
-      FULL_PATH="${PWD}/Minecraft.jar"
-      msg "Downloaded to ${FULL_PATH}"
+
+   FULL_PATH=$(get_conf_var "FULL_PATH" || echo "")
+   USERID=$(get_conf_var "USERID" || echo "")
+
+   if [ "${FULL_PATH}X" == "X" ]; then
+       msg "Directory to download Minecraft.jar to? : "
+       
+       read FETCH_TO
+       
+       if [ -d $FETCH_TO ]; then
+	   cd $FULL_PATH
+	   fetch $MC_URL
+
+	   FULL_PATH="${PWD}/Minecraft.jar"
+	   msg "Downloaded to ${FULL_PATH}"
+       else
+	   error "Path doesn't exist!"
+       fi
+
+       mkdir -p $CONF_DIR || error "Can't make $CONF_DIR"
+   else
+       msg "Downloading Minecraft.jar to ${FULL_PATH}"
+       fetch $MC_URL
    fi
-
-   mkdir -p ~/minecraft
-
-   msg "Please enter your minecraft user id: "
-   read USERID
+   
+   FULL_PATH="${PWD}/Minecraft.jar"
+   
+   msg "Downloaded to ${FULL_PATH}"
+   if [ "${USERID}X" == "X" ]; then
+       msg "Please enter your minecraft user id: "
+       
+       read USERID
+   fi
       
-   cat <<EOF > ~/minecraft/launcher_profiles.json
+   cat <<EOF > $CONF_DIR/launcher_profiles.json
 {
   "profiles": {
     "${USERID}": {
@@ -89,11 +112,11 @@ if [ $INITIAL == true ]; then
   }
 }
 EOF
-    touch $CONF_FILE
-    echo "USERID:${USERID}" > $CONF_FILE
-    echo "FULL_PATH:${FULL_PATH}" >> $CONF_FILE
+   touch $CONF_FILE
+   echo "USERID:${USERID}" > $CONF_FILE
+   echo "FULL_PATH:${FULL_PATH}" >> $CONF_FILE
 
-    msg "${CONF_FILE} written, now you can now just run 'minecraft' to start the game!"
+   msg "${CONF_FILE} written, now you can now just run 'minecraft' to start the game!"
 else
   WORKDIR="${PREFIX}/share/lwjgl"
   LWJGL_JLP_OVRD="$WORKDIR/"
@@ -103,6 +126,10 @@ else
   export JAVA_HOME=${JAVA_HOME}
 
   FULL_PATH=$(get_conf_var "FULL_PATH")
+
+  if [ ! -e $FULL_PATH ]; then
+      ftp -o $FULL_PATH $MC_URL
+  fi
 
   build_classpath() {
     j=0
@@ -124,28 +151,32 @@ else
     cp=`echo ${ncp[@]} | sed 's/ /:/g'`
   }
 
-  i=0
-  for var in "${@}"
-  do
-    if [[ "$var" == -Djava.library* ]]
-    then
-    # Yes, the next line is supposed to have 'FreeBSD' because OpenBSD
-    # is not (yet) recognized as a supported platform in lwjgl.
-        args[$i]="-Djava.library.path=${LWJGL_JLP_OVRD} -Dos.name=FreeBSD"
-    elif [[ "$var" == *lwjgl_util* ]]
-    then
-        build_classpath "${var}"
-        args[$i]="$cp"
-    else
-        args[$i]=$var
-    fi
-        i=$(( i + 1 ))
-  done
-  
-  # Running from here is super ghetto - this script basically gets
-  # called twice.. once by the user, and once by Minecraft.jar
-  # First run has no args.. second picks up the info to start the game
-  # posible solution is to detect the caller and conditionally execute
-  # based on that.
-  ${JAVA_HOME}/jre/bin/java ${args[@]} -jar ${FULL_PATH}
+  # check for the huge list of args, if we don't have them
+  # we were launched by the user. if we do we were launched
+  # by the mc launcher
+  TARGS=$(echo -n ${@})
+  if [ "${TARGS}X" == "X" ]; then
+      # Starting Minecraft.jar here
+      ${JAVA_HOME}/jre/bin/java -jar ${FULL_PATH}
+  else
+      i=0
+      for var in "${@}"
+      do
+	  if [[ "$var" == -Djava.library* ]]
+	  then
+	      # Yes, the next line is supposed to have 'FreeBSD' because OpenBSD
+	      # is not (yet) recognized as a supported platform in lwjgl.
+              args[$i]="-Djava.library.path=${LWJGL_JLP_OVRD} -Dos.name=FreeBSD"
+	  elif [[ "$var" == *lwjgl_util* ]]
+	  then
+              build_classpath "${var}"
+              args[$i]="$cp"
+	  else
+              args[$i]=$var
+	  fi
+          i=$(( i + 1 ))
+      done
+      # This is sent to the minecraft launcher
+      ${JAVA_HOME}/jre/bin/java ${args[@]} -jar ${FULL_PATH}
+  fi
 fi
