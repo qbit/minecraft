@@ -166,7 +166,7 @@ else
 	  then
 	      # Yes, the next line is supposed to have 'FreeBSD' because OpenBSD
 	      # is not (yet) recognized as a supported platform in lwjgl.
-              args[$i]="-Djava.library.path=${LWJGL_JLP_OVRD} -Dos.name=FreeBSD"
+              args[$i]="-Djava.library.path=${LWJGL_JLP_OVRD} -Dos.name=FreeBSD -Dos.version=OpenBSD_5.6"
 	  elif [[ "$var" == *lwjgl_util* ]]
 	  then
               build_classpath "${var}"
