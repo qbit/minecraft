@@ -14,6 +14,11 @@ white="\033[0m"
 PREFIX="/usr/local"
 JAVA_HOME="/usr/local/jdk-1.7.0/"
 
+INITIAL=true
+CONF_FILE=~/.minecraftrc
+CONF_DIR=~/minecraft
+MC_URL="https://s3.amazonaws.com/Minecraft.Download/launcher/Minecraft.jar"
+
 function msg {
     echo "${bold}${1}${white}"
 }
@@ -31,18 +36,15 @@ function set_ulimit {
     fi
 }
 
-function usage {
+function about {
 	 cat <<EOF
-  minecraft options:
-    -f force download of Minecraft.js
-    -r re-run the initial configuration
+This script downloads and launches Minecraft for you, there is an initial
+configuration that will be saved in ${CONF_FILE}. This file tells the 
+OpenBSD launcher where to find Minecraft.jar and the fixes required to make 
+Minecraft run on OpenBSD. You will only see this message once unless you
+remove ${CONF_FILE}.
 EOF
 }
-
-INITIAL=true
-CONF_FILE=~/.minecraftrc
-CONF_DIR=~/minecraft
-MC_URL="https://s3.amazonaws.com/Minecraft.Download/launcher/Minecraft.jar"
 
 function get_conf_var {
     RET=''
@@ -76,7 +78,8 @@ if [ ! -d $CONF_DIR ]; then
 fi
 
 if [ $INITIAL == true ]; then
-
+ 
+   about
    FULL_PATH=$(get_conf_var "FULL_PATH" || echo "")
    USERID=$(get_conf_var "USERID" || echo "")
 
