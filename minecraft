@@ -29,8 +29,8 @@ function error {
 }
 
 function set_ulimit {
-    DATASIZE="1548576"
-
+    DATASIZE="1572864" #1.5G
+    
     if [ $(ulimit -Sd) -lt ${DATASIZE} ]; then
 	ulimit -Sd ${DATASIZE} || error "Cannot increase datasize-cur to at least ${DATASIZE}"
     fi
