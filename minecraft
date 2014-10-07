@@ -123,7 +123,7 @@ else
   LWJGL_OVRD="$WORKDIR/lwjgl.jar"
   LWJGL_UTIL_OVRD="$WORKDIR/lwjgl_util.jar"
 
-  export JAVA_HOME=${JAVA_HOME}
+  export JH=${JAVA_HOME}
 
   FULL_PATH=$(get_conf_var "FULL_PATH")
 
@@ -157,7 +157,7 @@ else
   TARGS=$(echo -n ${@})
   if [ "${TARGS}X" == "X" ]; then
       # Starting Minecraft.jar here
-      ${JAVA_HOME}/jre/bin/java -jar ${FULL_PATH}
+      ${JH}/jre/bin/java -jar ${FULL_PATH}
   else
       i=0
       for var in "${@}"
@@ -175,6 +175,6 @@ else
           i=$(( i + 1 ))
       done
       # This is sent to the minecraft launcher
-      ${JAVA_HOME}/jre/bin/java ${args[@]} -jar ${FULL_PATH}
+      ${JH}/jre/bin/java ${args[@]} -jar ${FULL_PATH}
   fi
 fi
