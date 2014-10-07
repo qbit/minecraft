@@ -14,6 +14,23 @@ white="\033[0m"
 PREFIX="/usr/local"
 JAVA_HOME="/usr/local/jdk-1.7.0/"
 
+function msg {
+    echo "${bold}${1}${white}"
+}
+
+function error {
+    echo "${red}${1}${white}"
+    exit 1
+}
+
+function set_ulimit {
+    DATASIZE="1548576"
+
+    if [ $(ulimit -Sd) -lt ${DATASIZE} ]; then
+	ulimit -Sd ${DATASIZE} || error "Cannot increase datasize-cur to at least ${DATASIZE}"
+    fi
+}
+
 function usage {
 	 cat <<EOF
   minecraft options:
@@ -44,15 +61,6 @@ function get_conf_var {
 
 function fetch {
     ftp $1
-}
-
-function msg {
-    echo "${bold}${1}${white}"
-}
-
-function error {
-    echo "${red}${1}${white}"
-    exit 1
 }
 
 if [ -d $CONF_DIR ]; then
@@ -157,6 +165,7 @@ else
   TARGS=$(echo -n ${@})
   if [ "${TARGS}X" == "X" ]; then
       # Starting Minecraft.jar here
+      set_ulimit
       ${JH}/jre/bin/java -jar ${FULL_PATH}
   else
       i=0
@@ -175,6 +184,7 @@ else
           i=$(( i + 1 ))
       done
       # This is sent to the minecraft launcher
+      set_ulimit
       ${JH}/jre/bin/java ${args[@]} -jar ${FULL_PATH}
   fi
 fi
