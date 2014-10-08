@@ -166,6 +166,7 @@ else
   # we were launched by the user. if we do we were launched
   # by the mc launcher
   TARGS=$(echo -n ${@})
+  REV=$(uname -r)
   if [ "${TARGS}X" == "X" ]; then
       # Starting Minecraft.jar here
       set_ulimit
@@ -176,7 +177,7 @@ else
       do
 	  if [[ "$var" == -Djava.library* ]]
 	  then
-              args[$i]="-Djava.library.path=${LWJGL_JLP_OVRD} -Dos.version=OpenBSD_5.6"
+              args[$i]="-Djava.library.path=${LWJGL_JLP_OVRD} -Dos.version=OpenBSD_${REV}"
 	  elif [[ "$var" == *lwjgl_util* ]]
 	  then
               build_classpath "${var}"
@@ -188,6 +189,7 @@ else
       done
       # This is sent to the minecraft launcher
       set_ulimit
+      echo ${args[@]} >> /home/qbit/omgwtf
       ${JH}/jre/bin/java ${args[@]} -jar ${FULL_PATH}
   fi
 fi
