@@ -12,7 +12,6 @@ bold="\033[01;39m"
 white="\033[0m"
 
 PREFIX="/usr/local"
-JAVA_HOME="/usr/local/jdk-1.7.0/"
 
 INITIAL=true
 CONF_FILE=~/.minecraftrc
@@ -43,6 +42,7 @@ configuration that will be saved in ${CONF_FILE}. This file tells the
 OpenBSD launcher where to find Minecraft.jar and the fixes required to make 
 Minecraft run on OpenBSD. You will only see this message once unless you
 remove ${CONF_FILE}.
+
 EOF
 }
 
@@ -93,7 +93,6 @@ if [ $INITIAL == true ]; then
 	   fetch $MC_URL
 
 	   FULL_PATH="${PWD}/Minecraft.jar"
-	   msg "Downloaded to ${FULL_PATH}"
        else
 	   error "Path doesn't exist!"
        fi
@@ -134,8 +133,6 @@ else
   LWJGL_OVRD="$WORKDIR/lwjgl.jar"
   LWJGL_UTIL_OVRD="$WORKDIR/lwjgl_util.jar"
 
-  export JH=${JAVA_HOME}
-
   FULL_PATH=$(get_conf_var "FULL_PATH")
 
   if [ ! -e $FULL_PATH ]; then
@@ -170,7 +167,7 @@ else
   if [ "${TARGS}X" == "X" ]; then
       # Starting Minecraft.jar here
       set_ulimit
-      ${JH}/jre/bin/java -jar ${FULL_PATH}
+      $(${PREFIX}/bin/javaPathHelper -c minecraft) -jar ${FULL_PATH}
   else
       i=0
       for var in "${@}"
@@ -190,6 +187,6 @@ else
       # This is sent to the minecraft launcher
       set_ulimit
       echo ${args[@]} >> /home/qbit/omgwtf
-      ${JH}/jre/bin/java ${args[@]} -jar ${FULL_PATH}
+      $(${PREFIX}/bin/javaPathHelper -c minecraft) ${args[@]} -jar ${FULL_PATH}
   fi
 fi
