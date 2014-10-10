@@ -186,7 +186,6 @@ else
       done
       # This is sent to the minecraft launcher
       set_ulimit
-      echo ${args[@]} >> /home/qbit/omgwtf
       $(${PREFIX}/bin/javaPathHelper -c minecraft) ${args[@]} -jar ${FULL_PATH}
   fi
 fi
