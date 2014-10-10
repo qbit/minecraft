@@ -47,70 +47,39 @@ EOF
 }
 
 function get_conf_var {
-    RET=''
-    if [ -f $CONF_FILE ]; then
-	RET=$( grep $1 $CONF_FILE | awk -F\: '{print $2}' )
-    else
-	return 1
-    fi
-
-    if [ "${RET}X" == "X" ]; then
-	return 1
-    else
-	echo $RET
-    fi
+    [ -f "$CONF_FILE" ] || return
+    sed "/^$1:/!d;s///;q" "$CONF_FILE" | grep .
 }
 
 function fetch {
-    ftp $1
+    ftp "$@"
 }
 
-if [ -d $CONF_DIR ]; then
-    if [ -f $CONF_FILE ]; then
-	INITIAL=false
-    fi
-else
-    mkdir $CONF_DIR
-fi
 
-if [ ! -d $CONF_DIR ]; then
-    INITIAL=true
-fi
+if [ ! -d $CONF_DIR ] || [ ! -f $CONF_FILE ]; then
+   mkdir -p $CONF_DIR || error "Can't make $CONF_DIR"
 
-if [ $INITIAL == true ]; then
- 
    about
-   FULL_PATH=$(get_conf_var "FULL_PATH" || echo "")
-   USERID=$(get_conf_var "USERID" || echo "")
+   FULL_PATH=$(get_conf_var "FULL_PATH")
+   USERID=$(get_conf_var "USERID")
 
-   if [ "${FULL_PATH}X" == "X" ]; then
-       msg "Directory to download Minecraft.jar to? : "
+   if [ -z "$FULL_PATH" ]; then
+      msg "Directory to download Minecraft.jar to? : "
        
-       read FETCH_TO
+      read FETCH_TO
        
-       if [ -d $FETCH_TO ]; then
-	   cd $FULL_PATH
-	   fetch $MC_URL
-
-	   FULL_PATH="${PWD}/Minecraft.jar"
-       else
-	   error "Path doesn't exist!"
-       fi
-
-       mkdir -p $CONF_DIR || error "Can't make $CONF_DIR"
-   else
-       msg "Downloading Minecraft.jar to ${FULL_PATH}"
-       fetch $MC_URL
+      cd -- "$FETCH_TO" || error "Path doesn't exist!"
+      FULL_PATH="${PWD}/Minecraft.jar"
    fi
+
+   msg "Downloading Minecraft.jar to ${FULL_PATH}"
+   fetch -o "$FULL_PATH" "$MC_URL"
    
-   FULL_PATH="${PWD}/Minecraft.jar"
-   
-   msg "Downloaded to ${FULL_PATH}"
-   if [ "${USERID}X" == "X" ]; then
+   while [ -z "$USERID" ]; do
        msg "Please enter your minecraft user id: "
        
        read USERID
-   fi
+   done
       
    cat <<EOF > $CONF_DIR/launcher_profiles.json
 {
