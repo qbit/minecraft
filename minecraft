@@ -28,11 +28,7 @@ function error {
 }
 
 function set_ulimit {
-    DATASIZE="2097152" #2G
-    
-    if [ $(ulimit -Sd) -lt ${DATASIZE} ]; then
-	ulimit -Sd ${DATASIZE} || error "Cannot increase datasize-cur to at least ${DATASIZE}"
-    fi
+    ulimit -d $(ulimit -Hd)
 }
 
 function about {
@@ -42,6 +38,9 @@ configuration that will be saved in ${CONF_FILE}. This file tells the
 OpenBSD launcher where to find Minecraft.jar and the fixes required to make 
 Minecraft run on OpenBSD. You will only see this message once unless you
 remove ${CONF_FILE}.
+
+If you experience crashing, you may need to increase 'datasize-max' for
+your login class in login.conf.
 
 EOF
 }
