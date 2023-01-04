@@ -16,7 +16,7 @@ PREFIX="/usr/local"
 INITIAL=true
 CONF_FILE=~/.minecraftrc
 CONF_DIR=~/minecraft
-MC_URL="https://s3.amazonaws.com/Minecraft.Download/launcher/Minecraft.jar"
+MC_URL="https://github.com/glowiak/s3MinecraftDownload/raw/master/launcher.jar"
 
 function msg {
     echo "${bold}${1}${white}"
